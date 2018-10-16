@@ -1,0 +1,17 @@
+.input-btn{
+    background-color: transparent;
+    border: 1px solid black;
+    border-radius: 6px;
+    width: 100px;
+    transition: 0.5s;
+}
+
+.input-btn:hover{
+    background-color: black;
+    color: white;
+}
+
+::selection{
+    background-color: black;
+    color: white;
+}
