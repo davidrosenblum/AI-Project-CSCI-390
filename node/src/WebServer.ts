@@ -8,7 +8,7 @@ import { DocumentLoader } from "./DocumentLoader";
 export class WebServer{
     // default HTTP headers, allows CORS
     private static readonly HTTP_HEADERS:{[header:string]: string} = {
-        "Access-Control-Allow-Headers": "Access-Control-Allow-Origin",
+        "Access-Control-Allow-Headers": "Access-Control-Allow-Origin,x-api-key,Access-Control-Allow-Headers",
         "Access-Control-Allow-Origin": "*"
     };
 
