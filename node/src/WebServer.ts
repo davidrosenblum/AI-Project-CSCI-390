@@ -155,6 +155,40 @@ export class WebServer{
         });
     }
 
+    // figures out the word frequency of a corpus 
+    private aggregateWordDictionary(docs:DocumentSchema[]):{[word:string]: number}{
+        let aggregateWords:{[word:string]: number} = {};
+
+        docs.forEach(doc => {
+            for(let word in doc.words){
+                if(word in aggregateWords){
+                    aggregateWords[word]++;
+                }
+                else{
+                    aggregateWords[word] = 1;
+                }
+            }
+        });
+
+        return aggregateWords;
+    }
+
+    private makeMergedCSV(docs:DocumentSchema[]):string{
+        let aggregateWords:{[word:string]: number} = this.aggregateWordDictionary(docs);
+
+        let csv:string = "";
+
+        docs.forEach(doc => {
+            csv += `${doc.url},`;
+            
+            for(let word in aggregateWords){
+                csv += `${word},${doc.words[word]}\n`;
+            }
+        });
+
+        return csv;
+    }
+
     // system uses json, but this method converts json (of this schema) to csv 
     private makeCSV(json:DocumentSchema):string{
         let words:string[] = [],
