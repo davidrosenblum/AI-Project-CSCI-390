@@ -1,8 +1,10 @@
 import { MongoClient, Db, InsertOneWriteOpResult } from "mongodb";
+import { DocumentLoader } from "./DocumentLoader";
 
 // expected schema for items in the database
 export interface DocumentSchema{
     url:string;
+    algorithm_revision:number;
     words:{[word:string]: number};
 }
 
@@ -26,7 +28,8 @@ export class DBController{
 
     // inserts data parsed from a web page into the database
     public insert(url:string, words:{[word:string]: number}):Promise<InsertOneWriteOpResult>{
-        return this._database.collection("documents").insertOne({url, words});
+        let algorithm_revision:number = DocumentLoader.SCRAPE_ALGORITHM_REVISION;
+        return this._database.collection("documents").insertOne({url, words, algorithm_revision});
     }
 
     // retrieves an already loaded page from the database
