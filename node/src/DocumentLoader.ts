@@ -4,12 +4,14 @@ import * as cheerio from "cheerio";
 
 // Utility class for loading and parsing web pages
 export class DocumentLoader{
+    public static readonly SCRAPE_ALGORITHM_VERSION:number = 1;
+
     // creates a dictionary of all unique words to their word count {word: count}
     private static parse(text:string):{[word:string]: number}{
         let dict:{[word:string]: number} = {};
 
         // regex removes '.' and converts line breaks to spaces
-        text.replace(/\n/gi, " ").replace(/\./gi, "").split(" ").forEach(word => {
+        text.replace(/\s|\.|\s+/gi, " ").split(" ").forEach(word => {
             if(word in dict){
                 // not first encounter, increment frequency
                 dict[word]++;
@@ -24,7 +26,7 @@ export class DocumentLoader{
     }
 
     // loads a page via https and creates a dictionary of unique word : counts
-    public static seek(url:string):Promise<{[word:string]: number}>{
+    public static scrape(url:string):Promise<{[word:string]: number}>{
         return new Promise((resolve, reject) => {
             // https request...
             let req:http.ClientRequest = https.get(url, res => {

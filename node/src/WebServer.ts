@@ -3,13 +3,21 @@ import * as http from "http";
 import { MongoClient } from 'mongodb';
 import { DBController, DocumentSchema } from './DBController';
 import { DocumentLoader } from "./DocumentLoader";
+import { CSVBuilder } from "./CSVBuilder";
 
 // HTTP webserver using Express.js
 export class WebServer{
     // default HTTP headers, allows CORS
     private static readonly HTTP_HEADERS:{[header:string]: string} = {
-        "Access-Control-Allow-Headers": "Access-Control-Allow-Origin,x-api-key,Access-Control-Allow-Headers",
-        "Access-Control-Allow-Origin": "*"
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Headers": "Access-Control-Allow-Origin"
+    };
+
+    private static readonly HTTP_FILE_HEADERS:{[header:string]: string} = {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Headers": "Access-Control-Allow-Origin",
+        "Content-Type": "text/csv",
+        "Content-Disposition": "attachment; filename=data.csv"
     };
 
     private _app:express.Application            // express instance
@@ -17,7 +25,7 @@ export class WebServer{
     private _database:DBController;             // mongodb connection manger
 
     constructor(){
-        this._app = express().use(express.static(`${__dirname}/web/build`));
+        this._app = express().use(express.static(`${__dirname}/react/build`));
         this._server = http.createServer(this._app);
         this._database = null;
 
@@ -36,8 +44,42 @@ export class WebServer{
             res.end();
         });
 
-        // loads database from internet (stores in database)
-        this._app.post("/api/page/load", this.handleAPILoadPage.bind(this));
+        // loads/parses web page from internet (stores in database)
+        this._app.post("/api/page/scrape", (req, res) => {
+            this.readHttpPost(req, (err, json) => {
+                if(!err){
+                    if("urls" in json && json.urls instanceof Array){
+                        let urls:string[] = json.urls;
+
+                        if(urls.length === 1){
+                            this.scrapePage(urls[0])
+                                .then(resp => {
+                                    res.writeHead(200, WebServer.HTTP_HEADERS);
+                                    res.end(resp.message);
+                                })
+                                .catch(err => {
+                                    res.writeHead(400, WebServer.HTTP_HEADERS);
+                                    res.end(err.message);
+                                });
+                        }
+                        else{
+                            this.scrapePages(urls).then(resp => {
+                                res.writeHead(200, WebServer.HTTP_HEADERS);
+                                res.end(resp.message);
+                            });
+                        }
+                    }
+                    else{
+                        res.writeHead(400, WebServer.HTTP_HEADERS);
+                        res.end(`Error: urls must be an Array of strings specified in the json.`);
+                    }
+                }
+                else{
+                    res.writeHead(400, WebServer.HTTP_HEADERS);
+                    res.end(`Error parsing json.`);
+                }
+            });
+        });
 
         // retrieves page data from database
         this._app.get("/api/page/get/:url", (req, res) => {
@@ -50,62 +92,71 @@ export class WebServer{
                 })
                 .catch(err => {
                     res.writeHead(400, WebServer.HTTP_HEADERS);
-                    res.end(`ERR: "${url}" not in database. (See API endpoint for loading it)`);
+                    res.end(`Error: "${url}" not in database. (See API endpoint for loading it)`);
                 });
         });
-    }
 
-    // handler for when a load request comes in
-    private handleAPILoadPage(req:express.Request, res:express.Response):void{
-        // must have secret key
-        if(req.headers["x-api-key"] === "darksoulsIII"){
-            // parse json from post body...
+        // retrieves csv files
+        this._app.get("/api/page/csv", (req, res) => {
+            if("urls" in req.query){
+                let urls:string[] = decodeURIComponent(req.query.urls).split(",");
+
+                if(urls.length === 1){
+                    this._database.get(urls[0])
+                        .then(doc => {
+                            res.writeHead(200, WebServer.HTTP_HEADERS);
+                            res.end(CSVBuilder.makeCSV(doc));
+                        })
+                        .catch(err => {
+                            res.writeHead(400, WebServer.HTTP_FILE_HEADERS);
+                            res.end(`Error: ${urls[0]} not in database.`);
+                        });
+                }
+                else{
+                    this.getManyDBDocs(urls).then(docs => {
+                        res.writeHead(200, WebServer.HTTP_FILE_HEADERS);
+                        res.end(CSVBuilder.makeMergedCSV(docs));
+                    });
+                }
+            }
+            else{
+                res.writeHead(400, WebServer.HTTP_HEADERS);
+                res.end(`Error: No URLs provided in query strings.`);
+            }
+        });
+
+        this._app.post("/api/train/:topic", (req, res) => {
             this.readHttpPost(req, (err, json) => {
                 if(!err){
-                    // extract url from json
-                    let {url} = json;
+                    if("urls" in json && json.urls instanceof Array){
+                        let {urls} = json;
+                        let topic = req.param("topic").toLowerCase();
 
-                    if(!url){
-                        // url is missing (very bad)
-                        res.writeHead(400, WebServer.HTTP_HEADERS);
-                        res.end("URL must be specified in post json body.");
+                        // gather the data
+                        this.scrapePages(urls).then(report => {
+                            if(!report.errs){
+                                
+                            }
+                            else{
+                                res.writeHead(400, WebServer.HTTP_HEADERS);
+                                res.end(`Error: ${report.errs} urls could be scraped.`);
+                            }
+                        });
+
+                        res.writeHead(200, WebServer.HTTP_HEADERS);
+                        res.end("Training is not yet implemented.");
                     }
                     else{
-                        // url is present - load and parse the page
-                        this.loadPage(url)  // (inserts results to DB on success)
-                            .then(json => {
-                                // successful page parse
-                                let format:string = req.query.format || "json";
-                                let out:string = null;
-
-                                // json or csv output?
-                                if(format === "csv")
-                                    out = this.makeCSV(json);
-                                else out = JSON.stringify(json, null, 4);
-                            
-                                // respond
-                                res.writeHead(200, WebServer.HTTP_HEADERS);
-                                res.end(out);
-                            })
-                            .catch(err => {
-                                // error loading or parsing page
-                                res.writeHead(400, WebServer.HTTP_HEADERS);
-                                res.end(err.message);
-                            });
+                        res.writeHead(400, WebServer.HTTP_HEADERS);
+                        res.end(`Error: urls must be an Array of strings specified in the json`);
                     }
                 }
                 else{
-                    // error parsing json from post body
                     res.writeHead(400, WebServer.HTTP_HEADERS);
-                    res.end("Error reading post body json.");
+                    res.end(`Error parsing json.`);
                 }
             });
-        }
-        else{
-            // secret key missing
-            res.writeHead(403, WebServer.HTTP_HEADERS);
-            res.end("Unauthorized access.")
-        }
+        });
     }
 
     // reads the HTTP post body and JSON parses it
@@ -129,23 +180,64 @@ export class WebServer{
         });
     }
 
+    private pythonAPI(task:"train"|"predict", urls:string[]):Promise<any>{
+        return new Promise((resolve, reject) => {
+            let options = {
+
+            };
+
+            let req:http.ClientRequest = http.request(options, res => {
+
+            });
+
+            req.on("error", err => reject(err));
+        });
+    }
+
+    // retrieves multiple docs from the database
+    private getManyDBDocs(urls:string[]):Promise<DocumentSchema[]>{
+        return new Promise((resolve, reject) => {
+            let numDone:number = 0;
+            let results:DocumentSchema[] = [];
+
+            urls.forEach(url => {
+                this._database.get(url)
+                    .then(doc => {
+                        results.push(doc);
+                    })
+                    .catch(err => {})
+                    .then(() => {
+                        if(++numDone === urls.length){
+                            resolve(results);
+                        }
+                    });
+            }); 
+        });
+    }
+
     // loads a web page off the internet and parses it
     // auto saves to database on success
-    private loadPage(url:string):Promise<DocumentSchema>{
+    private scrapePage(url:string):Promise<{message: string}>{
         return new Promise((resolve, reject) => {
             // page already loaded?
             this._database.get(url)
                 .then(data => {
-                    // already loaded, no need to reload (resolve the 'cache')
-                    resolve(data)
+                    if(data.algorithm_revision !== DocumentLoader.SCRAPE_ALGORITHM_REVISION){
+                        // in database, but scraping is no longer valid because algo changed
+                        throw new Error("Revision error.");
+                    }
+                    else{
+                        // already loaded, no need to reload (resolve the 'cache')
+                        resolve({message: `${url} scraped (data was cached).`});
+                    } 
                 })
                 .catch(err => {
                     // does not exist... load it
-                    DocumentLoader.seek(url)
+                    DocumentLoader.scrape(url)
                         .then(words => {
                             // successful load - store in db
                             this._database.insert(url, words);
-                            resolve({url, words});
+                            resolve({message: `${url} scraped.`});
                         })
                         .catch(err => {
                             // load failed
@@ -155,51 +247,22 @@ export class WebServer{
         });
     }
 
-    // figures out the word frequency of a corpus 
-    private aggregateWordDictionary(docs:DocumentSchema[]):{[word:string]: number}{
-        let aggregateWords:{[word:string]: number} = {};
+    // laoads multiple web pages and saves them to DB
+    private scrapePages(urls:string[]):Promise<{message: string, errs:number}>{
+        return new Promise((resolve, reject) => {
+            let numDone:number = 0;
+            let errs:number = 0;
 
-        docs.forEach(doc => {
-            for(let word in doc.words){
-                if(word in aggregateWords){
-                    aggregateWords[word]++;
-                }
-                else{
-                    aggregateWords[word] = 1;
-                }
-            }
+            urls.forEach(url => {
+                this.scrapePage(url)
+                    .catch(err => errs++)
+                    .then(() => {
+                        if(++numDone === urls.length){
+                            resolve({message: `${numDone-errs}/${urls.length} scraped.`, errs});
+                        }
+                    });
+            });
         });
-
-        return aggregateWords;
-    }
-
-    private makeMergedCSV(docs:DocumentSchema[]):string{
-        let aggregateWords:{[word:string]: number} = this.aggregateWordDictionary(docs);
-
-        let csv:string = "";
-
-        docs.forEach(doc => {
-            csv += `${doc.url},`;
-            
-            for(let word in aggregateWords){
-                csv += `${word},${doc.words[word]}\n`;
-            }
-        });
-
-        return csv;
-    }
-
-    // system uses json, but this method converts json (of this schema) to csv 
-    private makeCSV(json:DocumentSchema):string{
-        let words:string[] = [],
-            counts:number[] = [];
-
-        for(let word in json.words){
-            words.push(word);
-            counts.push(json.words[word]);
-        }
-
-        return words.join(",") + "\n" + counts.join(",");
     }
 
     // starts the server
