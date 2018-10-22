@@ -1,15 +1,9 @@
 # AI Project - Python
 
-Python server provides an API layer for using Machine Learning components
+Python provides a program for using a building models
 
 ### Installation & Setup
 
 Install [Python 3](https://www.python.org/downloads/)
 
-Install pipenv ```pip3 install pipenv```
-
-Install local dependencies ```pipenv install```
-
-### Running Server
-
-```[PORT=9999] [DEBUG=1] python server.py```
+Install local dependencies ```pip install -r requirements.txt```
