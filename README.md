@@ -26,6 +26,7 @@ npm start
 
 Go to the python folder in your terminal
 ```
-TO BE DETERMINED
+pip install -r requirements.txt
+python server.py
 ```
 
