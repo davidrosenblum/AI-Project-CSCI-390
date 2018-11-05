@@ -4,7 +4,7 @@ import * as cheerio from "cheerio";
 
 // Utility class for loading and parsing web pages
 export class DocumentLoader{
-    public static readonly SCRAPE_ALGORITHM_VERSION:number = 1;
+    public static readonly SCRAPE_ALGORITHM_REVISION:number = 1;
 
     // creates a dictionary of all unique words to their word count {word: count}
     private static parse(text:string):{[word:string]: number}{

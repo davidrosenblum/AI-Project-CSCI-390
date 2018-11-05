@@ -25,7 +25,7 @@ export class WebServer{
     private _database:DBController;             // mongodb connection manger
 
     constructor(){
-        this._app = express().use(express.static(`${__dirname}/react/build`));
+        this._app = express().use(express.static(`${__dirname}/../react/build`));
         this._server = http.createServer(this._app);
         this._database = null;
 
