@@ -1,6 +1,7 @@
 import "../lib/bootstrap.min.css";
 import "./App.css";
 import React from "react";
+import { Container, Card, CardBody, Row, Col} from "reactstrap";
 import { ScrapeInput } from "./ScrapeInput";
 import { TrainInput } from "./TrainInput";
 import { PredictInput } from "./PredictInput";
@@ -11,25 +12,29 @@ export class App extends React.Component{
         return (
             <div>
                 <br/>
-                <div className="container card card-body bg-light">
-                    <div className="row">
-                        <div className="col-lg-6">
-                            <ScrapeInput/>
-                        </div>
-                        <div className="col-lg-6">
-                            <CSVInput/>
-                        </div>
-                    </div>
-                    <br/>
-                    <div className="row">
-                        <div className="col-lg-6">
-                            <TrainInput/>
-                        </div>
-                        <div className="col-lg-6">
-                            <PredictInput/>
-                        </div>
-                    </div>
-                </div>
+                <Container>
+                    <Card color="light">
+                        <CardBody>
+                            <Row>
+                                <Col lg={6}>
+                                    <ScrapeInput/>
+                                </Col>
+                                <Col lg={6}>
+                                    <CSVInput/>
+                                </Col>
+                            </Row>
+                            <br/>
+                            <Row>
+                                <Col lg={6}>
+                                    <TrainInput/>
+                                </Col>
+                                <Col lg={6}>
+                                    <PredictInput/>
+                                </Col>
+                            </Row>
+                        </CardBody>
+                    </Card>
+                </Container>
             </div>
         );
     }

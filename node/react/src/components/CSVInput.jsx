@@ -1,11 +1,12 @@
 import React from "react";
+import { Form, FormGroup, Button, Input } from "reactstrap";
 import { ajax } from "../ajax";
 
 export class CSVInput extends React.Component{
     constructor(props){
         super(props);
 
-        this.urlsRef = React.createRef();
+        this.urlsInput = null;
 
         this.state = {
             message: null,
@@ -16,7 +17,7 @@ export class CSVInput extends React.Component{
     onSubmit(evt){
         evt.preventDefault();
 
-        let urls = encodeURIComponent(this.urlsRef.current.value);
+        let urls = encodeURIComponent(this.urlsInput.value);
 
         let origin = window.location.origin.includes("localhost") ? "http://localhost:8080" : window.location.origin;
 
@@ -43,30 +44,31 @@ export class CSVInput extends React.Component{
     }
 
     onClear(){
-        this.urlsRef.current.value = "";
+        this.urlsInput.value = "";
     }
 
     render(){
         return (
             <div>
-                <form onSubmit={this.onSubmit.bind(this)}>
+                <Form onSubmit={this.onSubmit.bind(this)}>
                     <h3 className="text-center">Download CSV</h3>
-                    <div className="form-group">
-                        <input
-                            ref={this.urlsRef}
-                            className="form-control"
+                    <FormGroup>
+                        <Input
+                            innerRef={input => this.urlsInput = input}
                             placeholder="Enter URL(s) for their combined CSV data"
                             type="text"
                             required
                         />
-                    </div>
-                    <div className="form-group text-center">
-                        <input className="input-btn" disabled={this.state.pending} type="submit"/>&nbsp;
-                        <button onClick={this.onClear.bind(this)} className="input-btn" disabled={this.state.pending} type="button">
+                    </FormGroup>
+                    <FormGroup className="text-center">
+                        <Button disabled={this.state.pending}>
+                            Submit
+                        </Button>&nbsp;
+                        <Button onClick={this.onClear.bind(this)} disabled={this.state.pending} type="button">
                             Clear
-                        </button>
-                    </div>
-                </form>
+                        </Button>
+                    </FormGroup>
+                </Form>
                 <div className="text-center">
                     {this.state.message}
                 </div>
