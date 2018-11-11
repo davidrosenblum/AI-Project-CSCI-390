@@ -35,8 +35,25 @@ export class CSVInput extends React.Component{
 
         ajax(config)
             .then(xhr => {
-                let message = xhr.status === 200 ? null : xhr.response;
-                this.setState({pending: false, message});
+                if(xhr.status === 200){
+                    this.setState({pending: false, message: ""});
+
+                    // create a secret link tag
+                    let csvBlob = new Blob([xhr.response], {type: "octet/stream"});
+                    let a = document.createElement("a");
+                    let objUrl = window.URL.createObjectURL(csvBlob);
+
+                    // setup tag and download
+                    a.setAttribute("download", "words.csv");
+                    a.setAttribute("href", objUrl);
+                    a.click();
+
+                    window.URL.revokeObjectURL(objUrl);
+                }
+                else{
+                    this.setState({pending: false, message: xhr.response});
+                }
+                
             })
             .catch(err => {
                 this.setState({pending: false, message: "Request error."});
