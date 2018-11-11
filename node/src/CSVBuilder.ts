@@ -23,17 +23,14 @@ export class CSVBuilder{
     public static makeMergedCSV(docs:DocumentSchema[]):string{
         let aggregateWords:{[word:string]: number} = CSVBuilder.aggregateWordDictionary(docs);
 
-        let csv:string = "";
+        // make a fake document of the combined results
+        let combinedDoc:DocumentSchema = {
+            url: null,
+            words: aggregateWords,  // only important attribute
+            algorithm_revision: 0
+        };
 
-        docs.forEach(doc => {
-            csv += `${doc.url},`;
-            
-            for(let word in aggregateWords){
-                csv += `${word},${doc.words[word]}\n`;
-            }
-        });
-
-        return csv;
+        return CSVBuilder.makeCSV(combinedDoc);
     }
 
     // system uses json, but this method converts json (of this schema) to csv for a single page

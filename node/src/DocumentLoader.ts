@@ -4,7 +4,8 @@ import * as cheerio from "cheerio";
 
 // Utility class for loading and parsing web pages
 export class DocumentLoader{
-    public static readonly SCRAPE_ALGORITHM_REVISION:number = 1;
+    public static readonly SCRAPE_ALGORITHM_REVISION:number = 2;
+
 
     // creates a dictionary of all unique words to their word count {word: count}
     private static parse(text:string):{[word:string]: number}{
@@ -12,6 +13,8 @@ export class DocumentLoader{
 
         // regex removes '.' and converts line breaks to spaces
         text.replace(/\s|\.|\s+/gi, " ").split(" ").forEach(word => {
+            if(word.length < 3) return;
+
             if(word in dict){
                 // not first encounter, increment frequency
                 dict[word]++;
