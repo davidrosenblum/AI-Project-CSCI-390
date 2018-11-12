@@ -29,7 +29,7 @@ export class TrainInput extends React.Component{
 
         let config = {
             method:     "POST",
-            url:        `${origin}/api/train/${topic}`,
+            url:        `${origin}/api/train`,
             data:       {urls, topic},
             headers
         };

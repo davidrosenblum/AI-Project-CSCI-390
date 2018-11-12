@@ -13,13 +13,6 @@ export class WebServer{
         "Access-Control-Allow-Headers": "Access-Control-Allow-Origin"
     };
 
-    private static readonly HTTP_FILE_HEADERS:{[header:string]: string} = {
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Headers": "Access-Control-Allow-Origin",
-        "Content-Type": "text/csv",
-        "Content-Disposition": "attachment; filename=data.csv"
-    };
-
     private _app:express.Application            // express instance
     private _server:http.Server;                // http server
     private _database:DBController;             // mongodb connection manger
@@ -101,23 +94,20 @@ export class WebServer{
             if("urls" in req.query){
                 let urls:string[] = decodeURIComponent(req.query.urls).split(",");
 
-                if(urls.length === 1){
-                    this._database.get(urls[0])
-                        .then(doc => {
-                            res.writeHead(200, WebServer.HTTP_HEADERS);
-                            res.end(CSVBuilder.makeCSV(doc));
-                        })
-                        .catch(err => {
-                            res.writeHead(400, WebServer.HTTP_FILE_HEADERS);
-                            res.end(`Error: ${urls[0]} not in database.`);
-                        });
-                }
-                else{
-                    this.getManyDBDocs(urls).then(docs => {
-                        res.writeHead(200, WebServer.HTTP_FILE_HEADERS);
-                        res.end(CSVBuilder.makeMergedCSV(docs));
+                this.makeCSV(urls)
+                    .then(csv => {
+                        // copy headers and attach file headers
+                        let headers:{[header:string]: string} = Object.assign(WebServer.HTTP_HEADERS, {});
+                        headers["Content-Disposition"] = "attachment; filename=data.csv";
+                        headers["Content-Type"] = "text/csv";
+
+                        res.writeHead(200, headers);
+                        res.end(csv);
+                    })
+                    .catch(err => {
+                        res.writeHead(400, WebServer.HTTP_HEADERS);
+                        res.end(`Error: ${err.message}.`);
                     });
-                }
             }
             else{
                 res.writeHead(400, WebServer.HTTP_HEADERS);
@@ -125,33 +115,55 @@ export class WebServer{
             }
         });
 
-        this._app.post("/api/train/:topic", (req, res) => {
+        this._app.post("/api/train", (req, res) => {
+            console.log("TRAIN");
             this.readHttpPost(req, (err, json) => {
+                // read request json
                 if(!err){
-                    if("urls" in json && json.urls instanceof Array){
-                        let {urls} = json;
-                        let topic = req.param("topic").toLowerCase();
+                    // extract parameters from json body 
+                    if("urls" in json && json.urls instanceof Array && typeof json.topic === "string"){
+                        let {urls, topic} = json;
+
+                        topic = topic.toLowerCase();
 
                         // gather the data
                         this.scrapePages(urls).then(report => {
                             if(!report.errs){
-                                
+                                 this.makeCSV(urls)
+                                    .then(csv => {
+                                        this.sendTrainingSet(topic, csv)
+                                            .then(message => {
+                                                // success
+                                                res.writeHead(200, WebServer.HTTP_HEADERS);
+                                                res.end(message);
+                                            })
+                                            .catch(err => {
+                                                // python API error
+                                                res.writeHead(400, WebServer.HTTP_HEADERS);
+                                                res.end(`Error: ${err.message}.`);
+                                            });
+                                    })
+                                    .catch(err => {
+                                        // unable to create csv data
+                                        res.writeHead(400, WebServer.HTTP_HEADERS);
+                                        res.end(`Error: ${err.message}.`);
+                                    });
                             }
                             else{
+                                // error gathering data
                                 res.writeHead(400, WebServer.HTTP_HEADERS);
                                 res.end(`Error: ${report.errs} urls could be scraped.`);
                             }
                         });
-
-                        res.writeHead(200, WebServer.HTTP_HEADERS);
-                        res.end("Training is not yet implemented.");
                     }
                     else{
+                        // invalid json (missing attributes)
                         res.writeHead(400, WebServer.HTTP_HEADERS);
                         res.end(`Error: urls must be an Array of strings specified in the json`);
                     }
                 }
                 else{
+                    // unable to read json (parse error)
                     res.writeHead(400, WebServer.HTTP_HEADERS);
                     res.end(`Error parsing json.`);
                 }
@@ -180,17 +192,58 @@ export class WebServer{
         });
     }
 
-    private pythonAPI(task:"train"|"predict", urls:string[]):Promise<any>{
+    // submits training set data to the python machine learning API
+    private sendTrainingSet(topic:string, csv:string):Promise<string>{
         return new Promise((resolve, reject) => {
-            let options = {
+            let endpoint:string = (process.env.PYTHON|| "http://localhost:8081");
 
-            };
+            let url:string = `${endpoint}/api/train`
 
-            let req:http.ClientRequest = http.request(options, res => {
+            let req:http.ClientRequest = http.request(url, {method: "POST"}, res => {
+                let data:string = "";
 
+                res.on("data", chunk => data += chunk);
+                res.on("error", err => reject(err));
+                res.on("end", () => {
+                    if(res.statusCode === 200){
+                        resolve(data);
+                    }
+                    else{
+                        reject(new Error(data));
+                    }
+                });
             });
 
             req.on("error", err => reject(err));
+            req.end(JSON.stringify({topic, csv}));
+        });
+    }
+
+    // requests a prediction from the python machine learning API 
+    private requestPrediction(topic:string, csv:string):Promise<boolean>{
+        return new Promise((resolve, reject) => {
+            let endpoint:string = (process.env.PYTHON || "http://localhost:8081");
+
+            let url:string = `${endpoint}/api/predict`;
+
+            // implement !!! 
+            resolve(false);
+        });
+    }
+
+    // asychronously loads docs from the database and generates a csv file 
+    private makeCSV(urls:string[]):Promise<string>{
+        return new Promise((resolve, reject) => {
+            if(urls.length === 1){
+                this._database.get(urls[0])
+                    .then(doc => resolve(CSVBuilder.makeCSV(doc)))
+                    .catch(err => reject(err));
+            }
+            else{
+                this.getManyDBDocs(urls).then(docs => {
+                    resolve(CSVBuilder.makeMergedCSV(docs));
+                });
+            }
         });
     }
 

@@ -69,46 +69,56 @@ var WebServer = (function () {
         });
         this._app.get("/api/page/csv", function (req, res) {
             if ("urls" in req.query) {
-                var urls_1 = decodeURIComponent(req.query.urls).split(",");
-                if (urls_1.length === 1) {
-                    _this._database.get(urls_1[0])
-                        .then(function (doc) {
-                        res.writeHead(200, WebServer.HTTP_HEADERS);
-                        res.end(CSVBuilder_1.CSVBuilder.makeCSV(doc));
-                    })
-                        .catch(function (err) {
-                        res.writeHead(400, WebServer.HTTP_FILE_HEADERS);
-                        res.end("Error: " + urls_1[0] + " not in database.");
-                    });
-                }
-                else {
-                    _this.getManyDBDocs(urls_1).then(function (docs) {
-                        res.writeHead(200, WebServer.HTTP_FILE_HEADERS);
-                        res.end(CSVBuilder_1.CSVBuilder.makeMergedCSV(docs));
-                    });
-                }
+                var urls = decodeURIComponent(req.query.urls).split(",");
+                _this.makeCSV(urls)
+                    .then(function (csv) {
+                    var headers = Object.assign(WebServer.HTTP_HEADERS, {});
+                    headers["Content-Disposition"] = "attachment; filename=data.csv";
+                    headers["Content-Type"] = "text/csv";
+                    res.writeHead(200, headers);
+                    res.end(csv);
+                })
+                    .catch(function (err) {
+                    res.writeHead(400, WebServer.HTTP_HEADERS);
+                    res.end("Error: " + err.message + ".");
+                });
             }
             else {
                 res.writeHead(400, WebServer.HTTP_HEADERS);
                 res.end("Error: No URLs provided in query strings.");
             }
         });
-        this._app.post("/api/train/:topic", function (req, res) {
+        this._app.post("/api/train", function (req, res) {
+            console.log("TRAIN");
             _this.readHttpPost(req, function (err, json) {
                 if (!err) {
-                    if ("urls" in json && json.urls instanceof Array) {
-                        var urls = json.urls;
-                        var topic = req.param("topic").toLowerCase();
-                        _this.scrapePages(urls).then(function (report) {
+                    if ("urls" in json && json.urls instanceof Array && typeof json.topic === "string") {
+                        var urls_1 = json.urls, topic_1 = json.topic;
+                        topic_1 = topic_1.toLowerCase();
+                        _this.scrapePages(urls_1).then(function (report) {
                             if (!report.errs) {
+                                _this.makeCSV(urls_1)
+                                    .then(function (csv) {
+                                    _this.sendTrainingSet(topic_1, csv)
+                                        .then(function (message) {
+                                        res.writeHead(200, WebServer.HTTP_HEADERS);
+                                        res.end(message);
+                                    })
+                                        .catch(function (err) {
+                                        res.writeHead(400, WebServer.HTTP_HEADERS);
+                                        res.end("Error: " + err.message + ".");
+                                    });
+                                })
+                                    .catch(function (err) {
+                                    res.writeHead(400, WebServer.HTTP_HEADERS);
+                                    res.end("Error: " + err.message + ".");
+                                });
                             }
                             else {
                                 res.writeHead(400, WebServer.HTTP_HEADERS);
                                 res.end("Error: " + report.errs + " urls could be scraped.");
                             }
                         });
-                        res.writeHead(200, WebServer.HTTP_HEADERS);
-                        res.end("Training is not yet implemented.");
                     }
                     else {
                         res.writeHead(400, WebServer.HTTP_HEADERS);
@@ -138,12 +148,47 @@ var WebServer = (function () {
             cb(null, json || {});
         });
     };
-    WebServer.prototype.pythonAPI = function (task, urls) {
+    WebServer.prototype.sendTrainingSet = function (topic, csv) {
         return new Promise(function (resolve, reject) {
-            var options = {};
-            var req = http.request(options, function (res) {
+            var endpoint = (process.env.PYTHON || "http://localhost:8081");
+            var url = endpoint + "/api/train";
+            var req = http.request(url, { method: "POST" }, function (res) {
+                var data = "";
+                res.on("data", function (chunk) { return data += chunk; });
+                res.on("error", function (err) { return reject(err); });
+                res.on("end", function () {
+                    if (res.statusCode === 200) {
+                        resolve(data);
+                    }
+                    else {
+                        reject(new Error(data));
+                    }
+                });
             });
             req.on("error", function (err) { return reject(err); });
+            req.end(JSON.stringify({ topic: topic, csv: csv }));
+        });
+    };
+    WebServer.prototype.requestPrediction = function (topic, csv) {
+        return new Promise(function (resolve, reject) {
+            var endpoint = (process.env.PYTHON || "http://localhost:8081");
+            var url = endpoint + "/api/predict";
+            resolve(false);
+        });
+    };
+    WebServer.prototype.makeCSV = function (urls) {
+        var _this = this;
+        return new Promise(function (resolve, reject) {
+            if (urls.length === 1) {
+                _this._database.get(urls[0])
+                    .then(function (doc) { return resolve(CSVBuilder_1.CSVBuilder.makeCSV(doc)); })
+                    .catch(function (err) { return reject(err); });
+            }
+            else {
+                _this.getManyDBDocs(urls).then(function (docs) {
+                    resolve(CSVBuilder_1.CSVBuilder.makeMergedCSV(docs));
+                });
+            }
         });
     };
     WebServer.prototype.getManyDBDocs = function (urls) {
@@ -229,12 +274,6 @@ var WebServer = (function () {
     WebServer.HTTP_HEADERS = {
         "Access-Control-Allow-Origin": "*",
         "Access-Control-Allow-Headers": "Access-Control-Allow-Origin"
-    };
-    WebServer.HTTP_FILE_HEADERS = {
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Headers": "Access-Control-Allow-Origin",
-        "Content-Type": "text/csv",
-        "Content-Disposition": "attachment; filename=data.csv"
     };
     return WebServer;
 }());
