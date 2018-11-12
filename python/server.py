@@ -2,7 +2,7 @@ import os
 import tornado.web
 import tornado.httpserver
 import tornado.ioloop
-from handlers import MainHandler, PredictionHandler, TrainingHandler
+from python.handlers import MainHandler, PredictionHandler, TrainingHandler
 
 # create the tornado application
 # sets up route request handlers 
