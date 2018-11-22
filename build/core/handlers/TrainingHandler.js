@@ -22,7 +22,7 @@ var TrainingHandler = (function (_super) {
         _this._database = null;
         return _this;
     }
-    TrainingHandler.prototype.createTrainingModel = function (topic, docs) {
+    TrainingHandler.prototype.createTrainingData = function (topic, docs) {
         var aggregateWords = CSVBuilder_1.CSVBuilder.aggregateWordDictionary(docs);
         var trainX = [];
         var trainY = [];
@@ -42,15 +42,15 @@ var TrainingHandler = (function (_super) {
             if (!err) {
                 if ("topic" in json && "urls" in json) {
                     var topic_1 = json.topic, urls_1 = json.urls;
-                    _this._database.findModel(topic_1)
+                    _this._database.findTrainingData(topic_1)
                         .then(function (model) {
                         res.writeHead(400, RequestHandler_1.RequestHandler.CORS_HEADERS);
                         res.end("Training model already exists for topic \"" + topic_1 + "\"");
                     })
                         .catch(function (err) {
                         _this._database.findMany(urls_1).then(function (docs) {
-                            var model = _this.createTrainingModel(topic_1, docs);
-                            _this._database.insertModel(model)
+                            var model = _this.createTrainingData(topic_1, docs);
+                            _this._database.insertTrainingData(model)
                                 .then(function () {
                                 res.writeHead(200, RequestHandler_1.RequestHandler.CORS_HEADERS);
                                 res.end("Training model for topic \"" + topic_1 + "\" saved.");

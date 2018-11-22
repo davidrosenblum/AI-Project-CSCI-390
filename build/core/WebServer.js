@@ -7,6 +7,7 @@ var DBController_1 = require("../database/DBController");
 var CSVHandler_1 = require("./handlers/CSVHandler");
 var ScrapeHandler_1 = require("./handlers/ScrapeHandler");
 var TrainingHandler_1 = require("./handlers/TrainingHandler");
+var PredictionHandler_1 = require("./handlers/PredictionHandler");
 var WebServer = (function () {
     function WebServer() {
         var _this = this;
@@ -24,6 +25,7 @@ var WebServer = (function () {
         this._app.post("/api/page/scrape", ScrapeHandler_1.default.database(this._database).post.bind(ScrapeHandler_1.default));
         this._app.get("/api/page/csv", CSVHandler_1.default.database(this._database).get.bind(CSVHandler_1.default));
         this._app.post("/api/train", TrainingHandler_1.default.database(this._database).post.bind(TrainingHandler_1.default));
+        this._app.post("/api/predict", PredictionHandler_1.default.database(this._database).post.bind(PredictionHandler_1.default));
     };
     WebServer.prototype.init = function (callback) {
         var _this = this;

@@ -1,7 +1,7 @@
 import { MongoClient, Db, InsertOneWriteOpResult } from "mongodb";
 import { DocumentLoader } from "../core/DocumentLoader";
 import { DocumentSchema } from "./DocumentSchema";
-import { ModelSchema } from "./ModelSchema";
+import { TrainingDataSchema } from "./TrainingDataSchema";
 
 
 
@@ -22,19 +22,19 @@ export class DBController{
             throw err;
         }).then(() => this._database.collection("documents").createIndex({url: 1})).catch(err => {});
 
-        this._database.createCollection("models").catch(err => {
-            console.log("Error creating models collection");
+        this._database.createCollection("training").catch(err => {
+            console.log("Error creating training collection");
             throw err;
-        }).then(() => this._database.collection("models").createIndex({topic: 1}).catch(err => {}));
+        }).then(() => this._database.collection("training").createIndex({topic: 1}).catch(err => {}));
     }
 
-    public insertModel(model:ModelSchema):Promise<InsertOneWriteOpResult>{
-        return this._database.collection("models").insertOne(model);
+    public insertTrainingData(model:TrainingDataSchema):Promise<InsertOneWriteOpResult>{
+        return this._database.collection("training").insertOne(model);
     }
 
-    public findModel(topic:string):Promise<any>{
+    public findTrainingData(topic:string):Promise<TrainingDataSchema>{
         return new Promise((resolve, reject) => {
-            this._database.collection("models").findOne({topic})
+            this._database.collection("training").findOne({topic})
                 .then(result => result ? resolve(result) : reject(new Error(`No result for ${topic}`)))
                 .catch(err => reject(err));
         });
