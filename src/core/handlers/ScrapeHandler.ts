@@ -14,7 +14,7 @@ export class ScrapeHandler extends RequestHandler{
 
     // loads a web page off the internet and parses it
     // auto saves to database on success
-    private scrapePage(url:string):Promise<{message: string}>{
+    public scrapePage(url:string):Promise<{message: string}>{
         return new Promise((resolve, reject) => {
             // page already loaded?
             this._database.find(url)
@@ -45,7 +45,7 @@ export class ScrapeHandler extends RequestHandler{
     }
 
     // laoads multiple web pages and saves them to DB
-    private scrapePages(urls:string[]):Promise<{message: string, errs:number}>{
+    public scrapePages(urls:string[]):Promise<{message: string, errs:number}>{
         return new Promise((resolve, reject) => {
             let numDone:number = 0;
             let errs:number = 0;

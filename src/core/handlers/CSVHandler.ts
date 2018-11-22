@@ -13,7 +13,7 @@ export class CSVHandler extends RequestHandler{
     }
 
     // asychronously loads docs from the database and generates a csv file 
-    private makeCSV(urls:string[]):Promise<string>{
+    public makeCSV(urls:string[]):Promise<string>{
         return new Promise((resolve, reject) => {
             if(urls.length === 1){
                 this._database.find(urls[0])

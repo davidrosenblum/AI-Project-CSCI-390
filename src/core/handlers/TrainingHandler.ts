@@ -2,7 +2,7 @@ import * as express from "express";
 import { RequestHandler } from "./RequestHandler";
 import { DBController } from "../../database/DBController";
 import { DocumentSchema } from "../../database/DocumentSchema";
-import { ModelSchema } from "../../database/ModelSchema";
+import { TrainingDataSchema } from "../../database/TrainingDataSchema";
 import { CSVBuilder } from "../../utils/CSVBuilder";
 
 export class TrainingHandler extends RequestHandler{
@@ -14,7 +14,7 @@ export class TrainingHandler extends RequestHandler{
         this._database = null;
     }
 
-    private createTrainingModel(topic:string, docs:DocumentSchema[]):ModelSchema{
+    private createTrainingData(topic:string, docs:DocumentSchema[]):TrainingDataSchema{
         let aggregateWords:{[word:string]: number} = CSVBuilder.aggregateWordDictionary(docs);
 
         let trainX:string[] = [];
@@ -39,16 +39,17 @@ export class TrainingHandler extends RequestHandler{
                 if("topic" in json && "urls" in json){
                     let {topic, urls} = json;
 
-                    this._database.findModel(topic)
+                    this._database.findTrainingData(topic)
                         .then(model => {
+                            // - possibly update data -
                             res.writeHead(400, RequestHandler.CORS_HEADERS);
                             res.end(`Training model already exists for topic "${topic}"`);
                         })
                         .catch(err => {
                             this._database.findMany(urls).then(docs => {
-                                let model:ModelSchema = this.createTrainingModel(topic, docs);
+                                let model:TrainingDataSchema = this.createTrainingData(topic, docs);
                                 
-                                this._database.insertModel(model)
+                                this._database.insertTrainingData(model)
                                     .then(() => {
                                         res.writeHead(200, RequestHandler.CORS_HEADERS);
                                         res.end(`Training model for topic "${topic}" saved.`);

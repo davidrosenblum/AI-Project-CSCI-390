@@ -5,6 +5,7 @@ import { DBController } from "../database/DBController";
 import CSVHandler from "./handlers/CSVHandler";
 import ScrapeHandler from "./handlers/ScrapeHandler";
 import TrainingHandler from "./handlers/TrainingHandler";
+import PredictionHandler from "./handlers/PredictionHandler";
 
 // HTTP webserver using Express.js
 export class WebServer{
@@ -44,6 +45,8 @@ export class WebServer{
         this._app.get("/api/page/csv", CSVHandler.database(this._database).get.bind(CSVHandler));
 
         this._app.post("/api/train", TrainingHandler.database(this._database).post.bind(TrainingHandler));
+
+        this._app.post("/api/predict", PredictionHandler.database(this._database).post.bind(PredictionHandler));
     }
 
     // starts the server
