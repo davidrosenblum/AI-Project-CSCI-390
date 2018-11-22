@@ -7,9 +7,25 @@ var DBController = (function () {
         this.createCollections();
     }
     DBController.prototype.createCollections = function () {
+        var _this = this;
         this._database.createCollection("documents").catch(function (err) {
-            console.log("Error creating collection.");
+            console.log("Error creating documents collection.");
             throw err;
+        }).then(function () { return _this._database.collection("documents").createIndex({ url: 1 }); }).catch(function (err) { });
+        this._database.createCollection("models").catch(function (err) {
+            console.log("Error creating models collection");
+            throw err;
+        }).then(function () { return _this._database.collection("models").createIndex({ topic: 1 }).catch(function (err) { }); });
+    };
+    DBController.prototype.insertModel = function (model) {
+        return this._database.collection("models").insertOne(model);
+    };
+    DBController.prototype.findModel = function (topic) {
+        var _this = this;
+        return new Promise(function (resolve, reject) {
+            _this._database.collection("models").findOne({ topic: topic })
+                .then(function (result) { return result ? resolve(result) : reject(new Error("No result for " + topic)); })
+                .catch(function (err) { return reject(err); });
         });
     };
     DBController.prototype.insert = function (url, words) {
@@ -20,7 +36,7 @@ var DBController = (function () {
         var _this = this;
         return new Promise(function (resolve, reject) {
             _this._database.collection("documents").findOne({ url: url })
-                .then(function (result) { return result ? resolve(result) : reject("No result for " + url); })
+                .then(function (result) { return result ? resolve(result) : reject(new Error("No result for " + url)); })
                 .catch(function (err) { return reject(err); });
         });
     };

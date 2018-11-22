@@ -62,6 +62,8 @@ export class CSVInput extends React.Component{
 
     onClear(){
         this.urlsInput.value = "";
+        
+        this.setState({message: null});
     }
 
     render(){

@@ -6,10 +6,11 @@ var mongodb_1 = require("mongodb");
 var DBController_1 = require("../database/DBController");
 var CSVHandler_1 = require("./handlers/CSVHandler");
 var ScrapeHandler_1 = require("./handlers/ScrapeHandler");
+var TrainingHandler_1 = require("./handlers/TrainingHandler");
 var WebServer = (function () {
     function WebServer() {
         var _this = this;
-        this._app = express().use(express.static(__dirname + "/../react/build"));
+        this._app = express().use(express.static(__dirname + "/../../web/build"));
         this._server = http.createServer(this._app);
         this._database = null;
         this.init(function () { return _this.createRoutes(); });
@@ -22,6 +23,7 @@ var WebServer = (function () {
         });
         this._app.post("/api/page/scrape", ScrapeHandler_1.default.database(this._database).post.bind(ScrapeHandler_1.default));
         this._app.get("/api/page/csv", CSVHandler_1.default.database(this._database).get.bind(CSVHandler_1.default));
+        this._app.post("/api/train", TrainingHandler_1.default.database(this._database).post.bind(TrainingHandler_1.default));
     };
     WebServer.prototype.init = function (callback) {
         var _this = this;

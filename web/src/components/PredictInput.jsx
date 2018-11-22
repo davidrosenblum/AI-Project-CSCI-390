@@ -29,7 +29,7 @@ export class PredictInput extends React.Component{
 
         let config = {
             method:     "POST",
-            url:        `${origin}/api/predict/${topic}`,
+            url:        `${origin}/api/predict`,
             data:       {urls, topic},
             headers
         };
@@ -46,12 +46,14 @@ export class PredictInput extends React.Component{
     onClear(){
         this.urlsInput.value = "";
         this.topicInput.value = "";
+
+        this.setState({message: null});
     }
 
     render(){
         return (
             <div>
-                <Form>
+                <Form onSubmit={this.onSubmit.bind(this)}>
                     <h3 className="text-center">Model Prediction</h3>
                     <FormGroup>
                         <Input

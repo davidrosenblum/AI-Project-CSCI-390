@@ -46,6 +46,8 @@ export class TrainInput extends React.Component{
     onClear(){
         this.urlsInput.value = "";
         this.topicInput.value = "";
+
+        this.setState({message: null});
     }
 
     render(){
