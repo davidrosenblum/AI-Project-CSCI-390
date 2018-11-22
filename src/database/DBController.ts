@@ -1,6 +1,7 @@
 import { MongoClient, Db, InsertOneWriteOpResult } from "mongodb";
 import { DocumentLoader } from "../core/DocumentLoader";
 import { DocumentSchema } from "./DocumentSchema";
+import { ModelSchema } from "./ModelSchema";
 
 
 
@@ -17,8 +18,25 @@ export class DBController{
     // creates collection (table) if not exists
     private createCollections():void{
         this._database.createCollection("documents").catch(err => {
-            console.log("Error creating collection.");
+            console.log("Error creating documents collection.");
             throw err;
+        }).then(() => this._database.collection("documents").createIndex({url: 1})).catch(err => {});
+
+        this._database.createCollection("models").catch(err => {
+            console.log("Error creating models collection");
+            throw err;
+        }).then(() => this._database.collection("models").createIndex({topic: 1}).catch(err => {}));
+    }
+
+    public insertModel(model:ModelSchema):Promise<InsertOneWriteOpResult>{
+        return this._database.collection("models").insertOne(model);
+    }
+
+    public findModel(topic:string):Promise<any>{
+        return new Promise((resolve, reject) => {
+            this._database.collection("models").findOne({topic})
+                .then(result => result ? resolve(result) : reject(new Error(`No result for ${topic}`)))
+                .catch(err => reject(err));
         });
     }
 
@@ -32,7 +50,7 @@ export class DBController{
     public find(url:string):Promise<DocumentSchema>{
         return new Promise((resolve, reject) => {
             this._database.collection("documents").findOne({url})
-                .then(result => result ? resolve(result) : reject(`No result for ${url}`))
+                .then(result => result ? resolve(result) : reject(new Error(`No result for ${url}`)))
                 .catch(err => reject(err));
         });
     }

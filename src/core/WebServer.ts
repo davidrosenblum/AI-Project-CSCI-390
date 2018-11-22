@@ -4,6 +4,7 @@ import { MongoClient } from 'mongodb';
 import { DBController } from "../database/DBController";
 import CSVHandler from "./handlers/CSVHandler";
 import ScrapeHandler from "./handlers/ScrapeHandler";
+import TrainingHandler from "./handlers/TrainingHandler";
 
 // HTTP webserver using Express.js
 export class WebServer{
@@ -18,7 +19,7 @@ export class WebServer{
     private _database:DBController;             // mongodb connection manger
 
     constructor(){
-        this._app = express().use(express.static(`${__dirname}/../react/build`));
+        this._app = express().use(express.static(`${__dirname}/../../web/build`));
         this._server = http.createServer(this._app);
         this._database = null;
 
@@ -41,6 +42,8 @@ export class WebServer{
 
         // retrieves csv files
         this._app.get("/api/page/csv", CSVHandler.database(this._database).get.bind(CSVHandler));
+
+        this._app.post("/api/train", TrainingHandler.database(this._database).post.bind(TrainingHandler));
     }
 
     // starts the server

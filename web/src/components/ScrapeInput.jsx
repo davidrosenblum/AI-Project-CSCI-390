@@ -45,6 +45,8 @@ export class ScrapeInput extends React.Component{
 
     onClear(){
         this.urlsInput.value = "";
+
+        this.setState({message: null});
     }
 
     render(){
