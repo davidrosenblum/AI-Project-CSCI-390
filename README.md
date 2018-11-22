@@ -1,32 +1,63 @@
-# AI Project
+# AI Project - Node.js
 
-### Environment Setup
+Node.js server provides a RESTful API and serves React app, also connected to DB
 
-#### Requirements
+#### Installation & Setup
 
-Install the following to your computer...
 
-[Python 3 + pip](https://www.python.org/downloads/)
+Install [Node.js](https://nodejs.org/en/)
 
-[Node.js + npm](https://nodejs.org/en/download/)
+Install [MongoDB](https://www.mongodb.com/download-center#community)
 
-[MongoDB](https://www.mongodb.com/download-center?initial=true#community)
+Install local dependencies
 
-#### Project Setup
+```npm i```
 
-After pulling the master branch...
+Install global dependencies
 
-Go to the node folder in your terminal
+```npm i -g nodemon```
 
-These commands will install dependencies and start the node.js server
+```npm i -g typescript```
+
+#### Compiling
+Compile ```tsc```
+
+Compile while developing (watch mode) ```tsc -w```
+	
+
+#### Starting Server
+Environment variables
+
+```PORT=9999``` the HTTP server port
+
+```MONGODB_URL=mongodb://localhost:27017```the database endpoint (protocol + hostname + port)
+
+```MONGODB_DB=ai_proj```database name
+
+(Compile first!!!)
+
+```npm test``` will run make nodemon run the web server
+
+```npm start``` will run make node run the web server
+
+#### API
+
+React web app
+
+```GET /```
+
+Retrieves data preloaded data from the database
+(URL must be an _encoded URI component_)
+
+```GET /api/page/get/:encoded_url```
+
+Command the server to load the page 
+
+```POST /api/page/load```
+
+```?format=csv``` for CSV (default JSON)
+
+```javascript
+// http post body
+{"url": "https://mydomain.com"}
 ```
-npm i 
-npm start
-```
-
-Go to the python folder in your terminal
-```
-pip install -r requirements.txt
-python server.py
-```
-
