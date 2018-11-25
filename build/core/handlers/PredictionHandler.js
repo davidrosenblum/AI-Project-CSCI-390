@@ -22,10 +22,28 @@ var PredictionHandler = (function (_super) {
         _this._database = null;
         return _this;
     }
-    PredictionHandler.prototype.createTrainingModel = function (trainingData) {
+    PredictionHandler.prototype.predictPage = function (doc, model, results) {
+        var testData = this.getTestData(doc.words);
+        var xValues = testData.xValues, yValues = testData.yValues;
+        var testXs = tf.tensor(xValues);
+        var testYs = tf.tensor(yValues);
+        results[doc.url] = true;
+    };
+    PredictionHandler.prototype.linearRegressionModel = function () {
         var model = tf.sequential();
+        var layer = tf.layers.dense({ units: 1, inputShape: [1] });
+        model.add(layer);
         model.compile({ loss: "meanSquaredError", optimizer: "sgd" });
         return model;
+    };
+    PredictionHandler.prototype.getTestData = function (wordDict) {
+        var xValues = [];
+        var yValues = [];
+        for (var word in wordDict) {
+            xValues.push(word.charCodeAt(0));
+            yValues.push(wordDict[word]);
+        }
+        return { xValues: xValues, yValues: yValues };
     };
     PredictionHandler.prototype.database = function (db) {
         this._database = db;
@@ -36,16 +54,27 @@ var PredictionHandler = (function (_super) {
         this.loadPostBody(req, function (err, json) {
             if (!err) {
                 if ("topic" in json && "urls" in json) {
-                    var topic_1 = json.topic, urls = json.urls;
-                    _this._database.findMany(urls).then(function () {
-                        _this._database.findTrainingData(topic_1)
-                            .then(function (trainingData) {
-                            var model = _this.createTrainingModel(trainingData);
-                        })
-                            .catch(function (err) {
-                            res.writeHead(400, RequestHandler_1.RequestHandler.CORS_HEADERS);
-                            res.end("Model for topic \"" + topic_1 + "\" does not exist.");
+                    var topic_1 = json.topic, urls_1 = json.urls;
+                    _this._database.findTrainingData(topic_1)
+                        .then(function (trainingData) {
+                        _this._database.findMany(urls_1).then(function (docs) {
+                            if (docs.length < urls_1.length) {
+                                console.log("Prediction 'error': " + urls_1.length + " docs, got " + docs.length + ".");
+                            }
+                            var model = _this.linearRegressionModel();
+                            var trainXs = tf.tensor(trainingData.trainX.map(function (word) { return word.charCodeAt(0); }));
+                            var trainYs = tf.tensor(trainingData.trainY);
+                            var results = {};
+                            model.fit(trainXs, trainYs).then(function () {
+                                docs.forEach(function (doc) { return _this.predictPage(doc, model, results); });
+                                res.writeHead(200, RequestHandler_1.RequestHandler.CORS_HEADERS);
+                                res.end(JSON.stringify(results));
+                            });
                         });
+                    })
+                        .catch(function (err) {
+                        res.writeHead(400, RequestHandler_1.RequestHandler.CORS_HEADERS);
+                        res.end("Training data for topic \"" + topic_1 + "\" does not exist.");
                     });
                 }
                 else {
