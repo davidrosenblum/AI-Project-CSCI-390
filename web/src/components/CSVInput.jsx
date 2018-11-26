@@ -1,5 +1,5 @@
 import React from "react";
-import { Form, FormGroup, Button, Input } from "reactstrap";
+import { Form, FormGroup, Button, Input, Label } from "reactstrap";
 import { ajax } from "../ajax";
 
 export class CSVInput extends React.Component{
@@ -7,6 +7,7 @@ export class CSVInput extends React.Component{
         super(props);
 
         this.urlsInput = null;
+        this.filenameInput = null;
 
         this.state = {
             message: null,
@@ -36,7 +37,13 @@ export class CSVInput extends React.Component{
         ajax(config)
             .then(xhr => {
                 if(xhr.status === 200){
-                    this.setState({pending: false, message: ""});
+                    // get optional filename or use default 
+                    let filename = this.filenameInput.value ? this.filenameInput.value : `words_${Date.now()}.csv`;
+
+                    // append .csv if needed
+                    if(!filename.endsWith(".csv")){
+                        filename += ".csv";
+                    }
 
                     // create a secret link tag
                     let csvBlob = new Blob([xhr.response], {type: "octet/stream"});
@@ -44,11 +51,13 @@ export class CSVInput extends React.Component{
                     let objUrl = window.URL.createObjectURL(csvBlob);
 
                     // setup tag and download
-                    a.setAttribute("download", "words.csv");
+                    a.setAttribute("download", filename);
                     a.setAttribute("href", objUrl);
                     a.click();
 
+                    // delete data url & free buttons
                     window.URL.revokeObjectURL(objUrl);
+                    this.setState({pending: false, message: ""});
                 }
                 else{
                     this.setState({pending: false, message: xhr.response});
@@ -72,11 +81,20 @@ export class CSVInput extends React.Component{
                 <Form onSubmit={this.onSubmit.bind(this)}>
                     <h3 className="text-center">Download CSV</h3>
                     <FormGroup>
+                        <Label>URLs</Label>
                         <Input
                             innerRef={input => this.urlsInput = input}
                             placeholder="Enter URL(s) for their combined CSV data"
                             type="text"
                             required
+                        />
+                    </FormGroup>
+                    <FormGroup>
+                        <Label>Optional Filename</Label>
+                        <Input
+                            innerRef={input => this.filenameInput = input}
+                            placeholder="Enter optional filename (.csv not neccessary)"
+                            type="text"
                         />
                     </FormGroup>
                     <FormGroup className="text-center">

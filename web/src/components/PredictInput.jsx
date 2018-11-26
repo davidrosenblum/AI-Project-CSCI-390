@@ -1,5 +1,5 @@
 import React from "react";
-import { Form, FormGroup, Button, Input } from "reactstrap";
+import { Form, FormGroup, Button, Input, Label } from "reactstrap";
 import { ajax } from "../ajax";
 
 export class PredictInput extends React.Component{
@@ -56,6 +56,7 @@ export class PredictInput extends React.Component{
                 <Form onSubmit={this.onSubmit.bind(this)}>
                     <h3 className="text-center">Model Prediction</h3>
                     <FormGroup>
+                        <Label>URLs</Label>
                         <Input
                             innerRef={input => this.urlsInput = input}
                             type="text"
@@ -64,6 +65,7 @@ export class PredictInput extends React.Component{
                         />
                     </FormGroup>
                     <FormGroup>
+                        <Label>Topic</Label>
                         <Input
                             innerRef={input => this.topicInput = input}
                             type="text"
