@@ -1,5 +1,5 @@
 import React from "react";
-import { Form, FormGroup, Button, Input } from "reactstrap";
+import { Form, FormGroup, Button, Input, Label } from "reactstrap";
 import { ajax } from "../ajax";
 
 export class TrainInput extends React.Component{
@@ -56,6 +56,7 @@ export class TrainInput extends React.Component{
                 <Form onSubmit={this.onSubmit.bind(this)}>
                     <h3 className="text-center">Training Data</h3>
                     <FormGroup>
+                        <Label>URLs</Label>
                         <Input
                             innerRef={input => this.urlsInput = input}
                             type="text"
@@ -64,7 +65,8 @@ export class TrainInput extends React.Component{
                         />
                     </FormGroup>
                     <FormGroup>
-                    <Input
+                        <Label>Topic</Label>
+                        <Input
                             innerRef={input => this.topicInput = input}
                             type="text"
                             placeholder="Enter training topic"
