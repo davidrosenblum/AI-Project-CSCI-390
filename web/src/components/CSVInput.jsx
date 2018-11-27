@@ -1,6 +1,7 @@
 import React from "react";
 import { Form, FormGroup, Button, Input, Label } from "reactstrap";
 import { ajax } from "../ajax";
+import ModalDispatcher from "../dispatchers/ModalDispatcher";
 
 export class CSVInput extends React.Component{
     constructor(props){
@@ -60,13 +61,12 @@ export class CSVInput extends React.Component{
                     this.setState({pending: false, message: ""});
                 }
                 else{
-                    this.setState({pending: false, message: xhr.response});
+                    ModalDispatcher.emit("show-modal", {header: "Scrape Results", body: xhr.response});
                 }
                 
             })
-            .catch(err => {
-                this.setState({pending: false, message: "Request error."});
-            });
+            .catch(err => ModalDispatcher.emit("show-modal", {header: "CSV Results", body: "Server not available."}))
+            .then(() => this.setState({pending: false, message: ""}));
     }
 
     onClear(){
