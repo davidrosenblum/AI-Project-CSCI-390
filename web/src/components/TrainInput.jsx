@@ -1,6 +1,7 @@
 import React from "react";
 import { Form, FormGroup, Button, Input, Label } from "reactstrap";
 import { ajax } from "../ajax";
+import ModalDispatcher from "../dispatchers/ModalDispatcher";
 
 export class TrainInput extends React.Component{
     constructor(props){
@@ -35,12 +36,9 @@ export class TrainInput extends React.Component{
         };
 
         ajax(config)
-            .then(xhr => {
-                this.setState({pending: false, message: xhr.response});
-            })
-            .catch(err => {
-                this.setState({pending: false, message: "Error"});
-            });
+            .then(xhr => ModalDispatcher.emit("show-modal", {header: "Training Results", body: xhr.response}))
+            .catch(err => ModalDispatcher.emit("show-modal", {header: "Training Results", body: "Server not available."}))
+            .then(() => this.setState({pending: false, message: ""}));
     }
 
     onClear(){
