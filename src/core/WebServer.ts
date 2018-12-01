@@ -1,7 +1,9 @@
 import * as express from "express";
 import * as http from "http";
+import * as fs from "fs";
 import { MongoClient } from 'mongodb';
 import { DBController } from "../database/DBController";
+import { WebServerSettings } from "./WebServerSettings";
 import CSVHandler from "./handlers/CSVHandler";
 import ScrapeHandler from "./handlers/ScrapeHandler";
 import TrainingHandler from "./handlers/TrainingHandler";
@@ -14,6 +16,15 @@ export class WebServer{
         "Access-Control-Allow-Origin": "*",
         "Access-Control-Allow-Headers": "Access-Control-Allow-Origin"
     };
+
+    // default settings (Mongodb)
+    private static readonly DEFAULT_SETTINGS:WebServerSettings = {
+        "mongo_url":        "mongodb://localhost:27017",
+        "mongo_database":   "ai_proj"
+    };
+
+    // settings file name
+    private static readonly SETTINGS_PATH:string = "settings.json";
 
     private _app:express.Application            // express instance
     private _server:http.Server;                // http server
@@ -38,41 +49,90 @@ export class WebServer{
             res.end();
         });
 
-        // loads/parses web page from internet (stores in database)
+        // handle scrap requests 
         this._app.post("/api/page/scrape", ScrapeHandler.database(this._database).post.bind(ScrapeHandler));
 
-        // retrieves csv files
+        // handle csv file requests
         this._app.get("/api/page/csv", CSVHandler.database(this._database).get.bind(CSVHandler));
 
+        // handle training requests
         this._app.post("/api/train", TrainingHandler.database(this._database).post.bind(TrainingHandler));
 
+        // handle predicition requests
         this._app.post("/api/predict", PredictionHandler.database(this._database).post.bind(PredictionHandler));
+    }
+
+    // loads the settings json file 
+    private loadSettings(callback:(err:Error, settings:WebServerSettings)=>any):void{
+        fs.readFile(WebServer.SETTINGS_PATH, (err, data) => {
+            if(!err){
+                // file read - parse
+                let settings = JSON.parse(data.toString());
+
+                // apply missing or invalid type settings
+                for(let setting in WebServer.DEFAULT_SETTINGS){
+                    if(typeof settings[setting] !== typeof WebServer.DEFAULT_SETTINGS[setting]){
+                        settings[setting] = WebServer.DEFAULT_SETTINGS[setting];
+                    }
+                }
+
+                // success - trigger done callback  
+                callback(null, settings as WebServerSettings);
+            }
+            else{
+                // handle file missing error
+                if(err.errno === -4058){
+                    // file missing - write default and callback default 
+                    fs.writeFile(WebServer.SETTINGS_PATH, JSON.stringify(WebServer.DEFAULT_SETTINGS, null, 4), () => {
+                        let defaultSettingsCopy:WebServerSettings = Object.assign({}, WebServer.DEFAULT_SETTINGS);
+                        callback(null, defaultSettingsCopy);
+                    });
+                }
+                // unhandled error
+                else callback(err, null);
+            }
+        }); 
     }
 
     // starts the server
     private init(callback:()=>any):void{
         console.log("AI Project - WebServer\n");
 
-        // mongo config
-        let url:string = process.env.MONGDB_URL || "mongodb://localhost:27017";
-        let dbName:string = process.env.MONGDB_DB || "ai_proj";
-
-        console.log("Connecting to MongoDB...");
-        
-        // connect to database
-        MongoClient.connect(url, (err, db) => {
+        console.log("Loading settings...");
+        this.loadSettings((err, settings) => {
             if(!err){
-                console.log("Connected to MongoDB.\n");   
-                this._database = new DBController(db, dbName);
+                // settings loaded - connect to database
+                console.log("Settings loaded.\n");
 
-                // start http server
-                let port:number = parseInt(process.env.PORT) || 8080;
-                this._server.listen(port, () => {
-                    console.log(`Http server listening on port ${port}.\n`);
-                    callback();
+                // command line arg overrides (default to settings data)
+                let mongoUrl:string = process.env.MONGO_URL || settings.mongo_url;
+                let mongoDb:string = process.env.MONGO_DB || settings.mongo_database;
+
+                console.log("Connecting to database...");
+                MongoClient.connect(mongoUrl, {useNewUrlParser: true}, (err, db) => {
+                    if(!err){
+                        // database connected
+                        console.log("Connected.\n");
+
+                        // store connection 
+                        this._database = new DBController(db, mongoDb);
+
+                        // start http server
+                        let port:number = parseInt(process.env.PORT) || 8080;
+                        this._server.listen(port, () => {
+                            console.log(`Http server listening on port ${port}.\n`);
+                            callback();
+                        });
+                    }
+                    else{
+                        // database connection error
+                        console.log(err.message);
+                        process.exit();
+                    }
                 });
             }
             else{
+                // settings error
                 console.log(err.message);
                 process.exit();
             }

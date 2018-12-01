@@ -27,6 +27,7 @@ var PredictionHandler = (function (_super) {
         var xValues = testData.xValues, yValues = testData.yValues;
         var testXs = tf.tensor(xValues);
         var testYs = tf.tensor(yValues);
+        var predTensor = model.predict(testXs);
         results[doc.url] = true;
     };
     PredictionHandler.prototype.linearRegressionModel = function () {
@@ -62,7 +63,8 @@ var PredictionHandler = (function (_super) {
                                 console.log("Prediction 'error': " + urls_1.length + " docs, got " + docs.length + ".");
                             }
                             var model = _this.linearRegressionModel();
-                            var trainXs = tf.tensor(trainingData.trainX.map(function (word) { return word.charCodeAt(0); }));
+                            var xWordsAsNums = trainingData.trainX.map(function (word) { return word.split("").map(function (letter) { return letter.charCodeAt(0); }); }).map(function (arr) { return parseInt(arr.join("")); });
+                            var trainXs = tf.tensor(xWordsAsNums);
                             var trainYs = tf.tensor(trainingData.trainY);
                             var results = {};
                             model.fit(trainXs, trainYs).then(function () {
