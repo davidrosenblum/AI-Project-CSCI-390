@@ -24,6 +24,8 @@ export class PredictionHandler extends RequestHandler{
         let testXs:tf.Tensor = tf.tensor(xValues);
         let testYs:tf.Tensor = tf.tensor(yValues);
 
+        let predTensor:(tf.Tensor | tf.Tensor[]) = model.predict(testXs);
+
         results[doc.url] = true;
     }
 
@@ -78,9 +80,12 @@ export class PredictionHandler extends RequestHandler{
 
                                 // create a linear regression model
                                 let model:tf.Sequential = this.linearRegressionModel();
+                                
+                                // conver words to number codes ('hello' -> h,e,l,l,o -> 104, 101, 108, 108, 111 -> 104101108108111)
+                                let xWordsAsNums:number[] = trainingData.trainX.map(word => word.split("").map(letter => letter.charCodeAt(0))).map(arr => parseInt(arr.join("")));
 
                                 // get training data arrays
-                                let trainXs:tf.Tensor = tf.tensor(trainingData.trainX.map(word => word.charCodeAt(0)));
+                                let trainXs:tf.Tensor = tf.tensor(xWordsAsNums);
                                 let trainYs:tf.Tensor = tf.tensor(trainingData.trainY);
 
                                 // results dictionary, predicted results stored here
