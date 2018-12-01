@@ -40,14 +40,14 @@ var WebServer = (function () {
                 callback(null, settings);
             }
             else {
+                var defaultSettingsCopy_1 = Object.assign({}, WebServer.DEFAULT_SETTINGS);
                 if (err.errno === -4058) {
                     fs.writeFile(WebServer.SETTINGS_PATH, JSON.stringify(WebServer.DEFAULT_SETTINGS, null, 4), function () {
-                        var defaultSettingsCopy = Object.assign({}, WebServer.DEFAULT_SETTINGS);
-                        callback(null, defaultSettingsCopy);
+                        callback(null, defaultSettingsCopy_1);
                     });
                 }
                 else
-                    callback(err, null);
+                    callback(err, defaultSettingsCopy_1);
             }
         });
     };
@@ -56,7 +56,7 @@ var WebServer = (function () {
         console.log("AI Project - WebServer\n");
         console.log("Loading settings...");
         this.loadSettings(function (err, settings) {
-            if (!err) {
+            if (settings) {
                 console.log("Settings loaded.\n");
                 var mongoUrl = process.env.MONGO_URL || settings.mongo_url;
                 var mongoDb_1 = process.env.MONGO_DB || settings.mongo_database;
@@ -78,8 +78,9 @@ var WebServer = (function () {
                 });
             }
             else {
+                console.log("Settings file error.");
                 console.log(err.message);
-                process.exit();
+                console.log("WARNING: using default settings instead of exiting.");
             }
         });
     };

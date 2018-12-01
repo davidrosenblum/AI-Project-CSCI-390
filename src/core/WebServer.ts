@@ -81,15 +81,16 @@ export class WebServer{
             }
             else{
                 // handle file missing error
+                let defaultSettingsCopy:WebServerSettings = Object.assign({}, WebServer.DEFAULT_SETTINGS);
+
                 if(err.errno === -4058){
                     // file missing - write default and callback default 
                     fs.writeFile(WebServer.SETTINGS_PATH, JSON.stringify(WebServer.DEFAULT_SETTINGS, null, 4), () => {
-                        let defaultSettingsCopy:WebServerSettings = Object.assign({}, WebServer.DEFAULT_SETTINGS);
                         callback(null, defaultSettingsCopy);
                     });
                 }
                 // unhandled error
-                else callback(err, null);
+                else callback(err, defaultSettingsCopy);
             }
         }); 
     }
@@ -100,7 +101,7 @@ export class WebServer{
 
         console.log("Loading settings...");
         this.loadSettings((err, settings) => {
-            if(!err){
+            if(settings){
                 // settings loaded - connect to database
                 console.log("Settings loaded.\n");
 
@@ -133,8 +134,9 @@ export class WebServer{
             }
             else{
                 // settings error
+                console.log("Settings file error.");
                 console.log(err.message);
-                process.exit();
+                console.log("WARNING: using default settings instead of exiting.");
             }
         });
     }
