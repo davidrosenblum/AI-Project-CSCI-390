@@ -25,7 +25,7 @@ var ScrapeHandler = (function (_super) {
     ScrapeHandler.prototype.scrapePage = function (url) {
         var _this = this;
         return new Promise(function (resolve, reject) {
-            _this._database.find(url)
+            _this._database.find(url.trim())
                 .then(function (data) {
                 if (data.algorithm_revision !== DocumentLoader_1.DocumentLoader.SCRAPE_ALGORITHM_REVISION) {
                     throw new Error("Revision error.");
@@ -71,7 +71,7 @@ var ScrapeHandler = (function (_super) {
         this.loadPostBody(req, function (err, json) {
             if (!err) {
                 if ("urls" in json && json.urls instanceof Array) {
-                    var urls = json.urls;
+                    var urls = json.urls.map(function (url) { return url.trim(); });
                     if (urls.length === 1) {
                         _this.scrapePage(urls[0])
                             .then(function (resp) {

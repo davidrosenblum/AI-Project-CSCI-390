@@ -35,7 +35,7 @@ export class CSVHandler extends RequestHandler{
 
     public get(req:express.Request, res:express.Response):void{
         if("urls" in req.query){
-            let urls:string[] = decodeURIComponent(req.query.urls).split(",");
+            let urls:string[] = decodeURIComponent(req.query.urls).split(",").map(url => url.trim());
 
             this.makeCSV(urls)
                 .then(csv => {

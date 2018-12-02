@@ -17,7 +17,7 @@ export class ScrapeHandler extends RequestHandler{
     public scrapePage(url:string):Promise<{message: string}>{
         return new Promise((resolve, reject) => {
             // page already loaded?
-            this._database.find(url)
+            this._database.find(url.trim())
                 .then(data => {
                     if(data.algorithm_revision !== DocumentLoader.SCRAPE_ALGORITHM_REVISION){
                         // in database, but scraping is no longer valid because algo changed
@@ -71,7 +71,7 @@ export class ScrapeHandler extends RequestHandler{
         this.loadPostBody(req, (err, json) => {
             if(!err){
                 if("urls" in json && json.urls instanceof Array){
-                    let urls:string[] = json.urls;
+                    let urls:string[] = json.urls.map(url => url.trim());
 
                     if(urls.length === 1){
                         this.scrapePage(urls[0])
