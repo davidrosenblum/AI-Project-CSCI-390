@@ -11,8 +11,9 @@
     "mongodb": "^3.1.10",
     "typescript": "^3.1.6"
   },
+  "main": "build/core/WebServer.js",
   "scripts": {
-    "test": "nodemon build/core/WebServer.js",
-    "start": "node build/core/WebServer.js"
+    "test": "nodemon .",
+    "start": "node ."
   }
 }

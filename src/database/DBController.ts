@@ -2,6 +2,7 @@ import { MongoClient, Db, InsertOneWriteOpResult } from "mongodb";
 import { DocumentLoader } from "../core/DocumentLoader";
 import { DocumentSchema } from "./DocumentSchema";
 import { TrainingDataSchema } from "./TrainingDataSchema";
+import { TrainingSetSchema } from "./TrainingSetSchema";
 
 
 
@@ -22,19 +23,36 @@ export class DBController{
             throw err;
         }).then(() => this._database.collection("documents").createIndex({url: 1})).catch(err => {});
 
-        this._database.createCollection("training").catch(err => {
+        /*this._database.createCollection("training").catch(err => {
             console.log("Error creating training collection");
+            throw err;
+        }).then(() => this._database.collection("training").createIndex({topic: 1}).catch(err => {}));*/
+
+        this._database.createCollection("training_sets").catch(err => {
+            console.log("Error creating training sets collection");
             throw err;
         }).then(() => this._database.collection("training").createIndex({topic: 1}).catch(err => {}));
     }
 
-    public insertTrainingData(model:TrainingDataSchema):Promise<InsertOneWriteOpResult>{
+    /*public insertTrainingData(model:TrainingDataSchema):Promise<InsertOneWriteOpResult>{
         return this._database.collection("training").insertOne(model);
     }
 
     public findTrainingData(topic:string):Promise<TrainingDataSchema>{
         return new Promise((resolve, reject) => {
             this._database.collection("training").findOne({topic})
+                .then(result => result ? resolve(result) : reject(new Error(`No result for ${topic}`)))
+                .catch(err => reject(err));
+        });
+    }*/
+
+    public insertTrainingSet(model:TrainingSetSchema):Promise<InsertOneWriteOpResult>{
+        return this._database.collection("training_sets").insertOne(model);
+    }
+
+    public findTrainingSet(topic:string):Promise<TrainingSetSchema>{
+        return new Promise((resolve, reject) => {
+            this._database.collection("training_sets").findOne({topic})
                 .then(result => result ? resolve(result) : reject(new Error(`No result for ${topic}`)))
                 .catch(err => reject(err));
         });

@@ -43,7 +43,7 @@ var CSVHandler = (function (_super) {
     };
     CSVHandler.prototype.get = function (req, res) {
         if ("urls" in req.query) {
-            var urls = decodeURIComponent(req.query.urls).split(",");
+            var urls = decodeURIComponent(req.query.urls).split(",").map(function (url) { return url.trim(); });
             this.makeCSV(urls)
                 .then(function (csv) {
                 var headers = Object.assign(RequestHandler_1.RequestHandler.CORS_HEADERS, {});

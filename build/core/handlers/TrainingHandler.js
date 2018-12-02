@@ -14,7 +14,6 @@ var __extends = (this && this.__extends) || (function () {
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
 var RequestHandler_1 = require("./RequestHandler");
-var CSVBuilder_1 = require("../../utils/CSVBuilder");
 var TrainingHandler = (function (_super) {
     __extends(TrainingHandler, _super);
     function TrainingHandler() {
@@ -22,15 +21,19 @@ var TrainingHandler = (function (_super) {
         _this._database = null;
         return _this;
     }
-    TrainingHandler.prototype.createTrainingData = function (topic, docs) {
-        var aggregateWords = CSVBuilder_1.CSVBuilder.aggregateWordDictionary(docs);
-        var trainX = [];
-        var trainY = [];
-        for (var word in aggregateWords) {
-            trainX.push(word);
-            trainY.push(aggregateWords[word]);
-        }
-        return { topic: topic, trainX: trainX, trainY: trainY };
+    TrainingHandler.prototype.createTrainingSet = function (topic, docs) {
+        var trainingData = { topic: topic, trainX: [], trainY: [] };
+        docs.forEach(function (doc) {
+            var trainX = [];
+            var trainY = [];
+            for (var word in doc.words) {
+                trainX.push(word);
+                trainY.push(doc.words[word]);
+            }
+            trainingData.trainX.push(trainX);
+            trainingData.trainY.push(trainY);
+        });
+        return trainingData;
     };
     TrainingHandler.prototype.database = function (db) {
         this._database = db;
@@ -42,15 +45,15 @@ var TrainingHandler = (function (_super) {
             if (!err) {
                 if ("topic" in json && "urls" in json) {
                     var topic_1 = json.topic, urls_1 = json.urls;
-                    _this._database.findTrainingData(topic_1)
+                    _this._database.findTrainingSet(topic_1)
                         .then(function (model) {
                         res.writeHead(400, RequestHandler_1.RequestHandler.CORS_HEADERS);
                         res.end("Training model already exists for topic \"" + topic_1 + "\"");
                     })
                         .catch(function (err) {
-                        _this._database.findMany(urls_1).then(function (docs) {
-                            var model = _this.createTrainingData(topic_1, docs);
-                            _this._database.insertTrainingData(model)
+                        _this._database.findMany(urls_1.map(function (url) { return url.trim(); })).then(function (docs) {
+                            var model = _this.createTrainingSet(topic_1, docs);
+                            _this._database.insertTrainingSet(model)
                                 .then(function () {
                                 res.writeHead(200, RequestHandler_1.RequestHandler.CORS_HEADERS);
                                 res.end("Training model for topic \"" + topic_1 + "\" saved.");
